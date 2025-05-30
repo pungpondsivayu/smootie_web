@@ -3,6 +3,7 @@ import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Select from "../Select";
 import MultiSelect from "../MultiSelect";
+import SearachSelect from "../SearachSelect";
 
 export default function SelectInputs() {
   const options = [
@@ -10,7 +11,7 @@ export default function SelectInputs() {
     { value: "template", label: "Template" },
     { value: "development", label: "Development" },
   ];
-  const handleSelectChange = (value: string) => {
+  const handleSelectChange = (value: number | string) => {
     console.log("Selected value:", value);
   };
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
@@ -44,6 +45,15 @@ export default function SelectInputs() {
           <p className="sr-only">
             Selected Values: {selectedValues.join(", ")}
           </p>
+        </div>
+        <div>
+          <Label>Select Input</Label>
+          <SearachSelect
+            options={options}
+            placeholder="Select Option"
+            onChange={handleSelectChange}
+            className="dark:bg-dark-900"
+          />
         </div>
       </div>
     </ComponentCard>
