@@ -10,7 +10,7 @@ export const IngredientController = BaseApi.injectEndpoints({
     GetIngredient: builder.query({
       query: ({ pageSize, currentPage }: IngredientProps) => ({
         url: "Ingredient/GetAllIngredient",
-        method: "Get",
+        method: "GET",
         headers: {
           "Content-type": "application/json",
         },
@@ -18,6 +18,13 @@ export const IngredientController = BaseApi.injectEndpoints({
           pageSize,
           currentPage,
         },
+      }),
+      providesTags: ["Ingredient"],
+    }),
+     getIngredientDropdown: builder.query({
+      query: () => ({
+        url: "Ingredient/getDropdown",
+        method: "GET",
       }),
       providesTags: ["Ingredient"],
     }),
@@ -42,4 +49,9 @@ export const IngredientController = BaseApi.injectEndpoints({
   }),
 });
 
-export const { useLazyGetIngredientQuery , useSaveIngredientMutation , useDeleteIngredientMutation } = IngredientController;
+export const {
+  useLazyGetIngredientQuery,
+  useLazyGetIngredientDropdownQuery,
+  useSaveIngredientMutation,
+  useDeleteIngredientMutation,
+} = IngredientController;

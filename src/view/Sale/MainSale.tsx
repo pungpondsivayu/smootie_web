@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { IDropDown, IPagin } from "../../@types/global";
+import { IDropDown, IPagin, IResponse } from "../../@types/global";
 import { useLazyGetDropdownQuery } from "../../controller/Category.Controllers";
 import Button from "../../components/ui/button/Button";
 import Pagination from "../../components/global/Pagination";
@@ -8,9 +8,11 @@ import { useLazyGetMenusQuery } from "../../controller/Menu.Controllers";
 import { useDebounce } from "use-debounce";
 import Input from "../../components/form/input/InputField";
 import button from "../../assets/sale/beep-29.mp3";
-import { IOrderItem, ISaveOrder,} from "../../@types/order/OrderType";
-
-
+import { IOrderItem, IAllOrder, IAlleSavOrder } from "../../@types/order/OrderType";
+import { useSaveOrderMutation } from "../../controller/Order.Controllers";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
+import { useAppSelector } from "../../redux/store/hook";
 
 interface SearchProps {
   name: string;
@@ -18,11 +20,11 @@ interface SearchProps {
 }
 
 const MainSale: React.FC = () => {
+  const navigate = useNavigate();
   const [orderItem, setOrderItem] = useState<IOrderItem[]>([]);
-  const [order, setOrder] = useState<ISaveOrder[]>([]);
+  const { user }: any = useAppSelector((state) => state.auth);
   const [data, setData] = useState<IAllMenu[]>([]);
   const [categoryDropdown, setCategoryDropdown] = useState<IDropDown[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
   const [pagin, setPagin] = useState<IPagin>({
     currentPage: 1,
     pageSize: 50,
@@ -34,19 +36,26 @@ const MainSale: React.FC = () => {
     name: "",
     categoryId: 0,
   });
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("cash");
+  const subtotal = orderItem.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const tax = subtotal * 0.07;
+  const total = subtotal + tax;
+  const [paidAmount, setPaidAmount] = useState("");
+  const change = parseFloat(paidAmount || "0") - total;
 
-  // const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [debouncedSearch] = useDebounce(search, 500);
+
+  // use query
   const [getMenus] = useLazyGetMenusQuery();
   const [getCategoryDropdown] = useLazyGetDropdownQuery();
-  const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("cash");
-  const [showUserInfo, setShowUserInfo] = useState<Boolean>(false);
-  const [userInfo, setUserInfo] = useState({ name: "", phone: "" });
+  const [SaveOrder] = useSaveOrderMutation();
 
+  //function
   const fetchCategoriesDropdown = async () => {
-    setLoading(true);
     const res = await getCategoryDropdown(null);
-    setLoading(false);
     if (res.data && !res.isError) {
       const { data } = res.data;
       setCategoryDropdown(data);
@@ -55,18 +64,16 @@ const MainSale: React.FC = () => {
 
   const fetchAllMenus = async (
     pageSize: number,
-    currentPage: number, 
+    currentPage: number,
     name: string,
     categoryId: number
   ) => {
-    setLoading(true);
     const res = await getMenus({
       pageSize,
       currentPage,
       name,
       categoryId,
     });
-    setLoading(false);
     if (res.data && !res.isError) {
       const { data, pagin } = res.data;
       setData(data);
@@ -88,18 +95,20 @@ const MainSale: React.FC = () => {
       } else {
         return [
           ...prev,
-          { menuId: item.menuId, name: item.name, price: item.price, quantity: 1 },
+          {
+            menuId: item.menuId,
+            name: item.name,
+            price: item.price,
+            quantity: 1,
+          },
         ];
       }
     });
-
-    const sound = new Audio ();
-    sound.src = button;
-    sound.play();
+    SoundClick()
   };
 
   const changeQuantity = (index: number, amount: number) => {
-      setOrderItem((prev) => {
+    setOrderItem((prev) => {
       const updated = [...prev];
       updated[index].quantity += amount;
       if (updated[index].quantity <= 0) updated.splice(index, 1);
@@ -107,17 +116,13 @@ const MainSale: React.FC = () => {
     });
   };
 
-  const subtotal = orderItem.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = subtotal * 0.07;
-  const total = subtotal + tax;
-
   const submitOrder = async () => {
-    const orderData : ISaveOrder = {
+    const orderData: IAlleSavOrder = {
       customerId: null,
-      branchId: 0,
+      branchId: user?.branchId,
       orderTime: new Date().toISOString(),
       channel: "POS",
-      paymentMethod : "cash", 
+      paymentMethod: paymentMethod,
       pickupMethod: "pickup",
       totalAmount: subtotal,
       discountAmount: 0,
@@ -128,11 +133,32 @@ const MainSale: React.FC = () => {
       status: "paid",
       pickupTime: null,
       deliveryStatus: "",
-      orderItems: orderItem.map(({ menuId, quantity, price }) => ({ menuId, quantity, price })),
+      orderItems: orderItem.map(({ menuId, quantity, price }) => ({
+        orderId: 0,
+        menuId,
+        quantity,
+        price,
+      })),
     };
-
-    console.log(orderData)
+    const response: IResponse<any> = await SaveOrder(orderData);
+    if (response && response.data) {
+      const res = response.data;
+      if (res?.statusCode == 200 && res?.success) {
+        toast.success(res?.message);
+        setTimeout(() => {
+          navigate("/order");
+        }, 1000);
+      }
+    } else {
+      toast.error(response.error.data.message);
+    }
   };
+
+  function SoundClick() {
+    const sound = new Audio();
+    sound.src = button;
+    sound.play();
+  }
 
   useEffect(() => {
     fetchCategoriesDropdown();
@@ -140,7 +166,12 @@ const MainSale: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchAllMenus(pagin.pageSize, pagin.currentPage, search.name, search.categoryId);
+    fetchAllMenus(
+      pagin.pageSize,
+      pagin.currentPage,
+      search.name,
+      search.categoryId
+    );
   }, [debouncedSearch]);
 
   return (
@@ -273,35 +304,6 @@ const MainSale: React.FC = () => {
           </div>
         </div>
 
-        {/* User Info */}
-        <div>
-          <button
-            onClick={() => setShowUserInfo(!showUserInfo)}
-            className="text-sm text-blue-600 hover:underline transition"
-          >
-            {showUserInfo ? "ซ่อนข้อมูลสมาชิก" : "เพิ่มข้อมูลสมาชิก"}
-          </button>
-
-          {showUserInfo && (
-            <div className="space-y-4 mt-4">
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">
-                  ค้นหาผู้ใช้
-                </label>
-                <input
-                  type="text"
-                  value={userInfo.name}
-                  onChange={(e) =>
-                    setUserInfo({ ...userInfo, name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="UserId or Phonenumber"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Summary */}
         <div className="space-y-2 text-sm text-gray-600">
           <div className="flex justify-between">
@@ -318,6 +320,60 @@ const MainSale: React.FC = () => {
           <span>Total</span>
           <span>฿{total.toFixed(2)}</span>
         </div>
+        {/* รับเงินจากลูกค้า */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            รับเงินจากลูกค้า (บาท)
+          </label>
+
+          {/* ปุ่มกดเงิน */}
+          <div className="flex gap-2 flex-wrap">
+            {[1,5,10,20, 50, 100, 500, 1000].map((amount) => (
+              <button
+                key={amount}
+                onClick={() => {
+                  setPaidAmount((prev) =>
+                    (parseFloat(prev || "0") + amount).toFixed(2)
+                  );
+                  SoundClick();
+                }}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium shadow"
+              >
+                +{amount}
+              </button>
+            ))}
+            <button
+              onClick={() => {
+                setPaidAmount("");
+                SoundClick();
+              }}
+              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm font-medium shadow"
+            >
+              ล้าง
+            </button>
+          </div>
+
+          {/* ช่อง input */}
+          <input
+            type="number"
+            value={paidAmount}
+            onChange={(e) => setPaidAmount(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="กรอกจำนวนเงินที่รับมา"
+          />
+
+          {/* เงินทอน */}
+          <div className="text-sm text-gray-600 flex justify-between">
+            <span>เงินทอน</span>
+            <span
+              className={`font-medium ${
+                change < 0 ? "text-red-500" : "text-green-600"
+              }`}
+            >
+              {change >= 0 ? `฿${change.toFixed(2)}` : "เงินไม่พอ"}
+            </span>
+          </div>
+        </div>
 
         {/* Submit */}
         <Button
@@ -329,70 +385,6 @@ const MainSale: React.FC = () => {
           ยืนยันคำสั่งซื้อ
         </Button>
       </div>
-      {/* <div className="md:w-1/3 w-full bg-white p-6 rounded-xl shadow-lg mt-6 md:mt-0 space-y-4">
-        <h3 className="text-xl font-semibold">🧾 คำสั่งซื้อ</h3>
-
-        <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-          {orderItem.map((item, idx) => (
-            <div
-              key={idx}
-              className="flex justify-between items-center border-b pb-2"
-            >
-              <div>
-                <p className="text-sm font-medium">{item.name}</p>
-                <p className="text-xs text-gray-500">
-                  ฿{item.price.toFixed(2)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => changeQuantity(idx, -1)}
-                  className="w-6 h-6 bg-gray-200 text-black rounded"
-                >
-                  −
-                </button>
-                <span>{item.quantity}</span>
-                <button
-                  onClick={() => changeQuantity(idx, 1)}
-                  className="w-6 h-6 bg-gray-200 text-black rounded"
-                >
-                  +
-                </button>
-              </div>
-              <p className="text-sm font-semibold">
-                ฿{(item.price * item.quantity).toFixed(2)}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-1 text-sm text-gray-600">
-          <div className="flex justify-between">
-            <span>Subtotal</span>
-            <span>฿{subtotal.toFixed(2)}</span>
-          </div>
-
-          <div className="flex justify-between">
-            <span>Tax 7%</span>
-            <span>฿{tax.toFixed(2)}</span>
-          </div>
-        </div>
-
-        <div className="flex justify-between font-bold text-lg">
-          <span>Total</span>
-          <span>฿{total.toFixed(2)}</span>
-        </div>
-
-
-        <Button
-          size="sm"
-          variant="primary"
-          onClick={submitOrder}
-          className="w-full"
-        >
-          ยืนยันคำสั่งซื้อ
-        </Button>
-      </div> */}
     </div>
   );
 };

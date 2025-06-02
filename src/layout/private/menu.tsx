@@ -7,6 +7,7 @@ import {
   faChartPie,
   faGear,
   faNetworkWired,
+  faTableList,
   faWarehouse,
 } from "@fortawesome/free-solid-svg-icons";
 
@@ -22,14 +23,20 @@ export const navItems: NavItem[] = [
   {
     icon: <FontAwesomeIcon icon={faChartPie} />,
     name: "Dashboard",
-    role: [Roles.ADMIN, Roles.Manager],
+    role: [Roles.ADMIN, Roles.Manager, Roles.Starf],
     path: "/dashboard",
   },
   {
     icon: <FontAwesomeIcon icon={faCashRegister} />,
     name: "Sale",
-    role: [Roles.Manager],
+    role: [Roles.Manager, Roles.Starf],
     path: "/sale",
+  },
+  {
+    icon: <FontAwesomeIcon icon={faTableList} />,
+    name: "Order",
+    role: [Roles.ADMIN, Roles.Manager, Roles.Starf],
+    path: "/order",
   },
   {
     icon: <FontAwesomeIcon icon={faWarehouse} />,
@@ -37,6 +44,7 @@ export const navItems: NavItem[] = [
     role: [Roles.Manager, Roles.Starf],
     subItems: [
       { name: "warehouse", path: "/warehouse", pro: false },
+      { name: "couter", path: "/warehouse/couter", pro: false },
     ],
   },
   {
@@ -57,6 +65,14 @@ export const navItems: NavItem[] = [
     role: [Roles.Manager],
     subItems: [
       { name: "employee", path: "/setting/employee", pro: false },
+      { name: "Menu", path: "/setting/menu", pro: false },
+    ],
+  },
+   {
+    icon: <FontAwesomeIcon icon={faGear} />,
+    name: "Setting",
+    role: [Roles.Starf],
+    subItems: [
       { name: "Menu", path: "/setting/menu", pro: false },
     ],
   },

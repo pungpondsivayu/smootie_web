@@ -226,7 +226,7 @@ const AppSidebar: React.FC = () => {
         }`}
       >
         <Link to="/">
-          {isExpanded || isHovered || isMobileOpen ? (
+          {/* {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img
                 className="dark:hidden"
@@ -250,7 +250,7 @@ const AppSidebar: React.FC = () => {
               width={32}
               height={32}
             />
-          )}
+          )} */}
         </Link>
       </div>
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
@@ -270,11 +270,14 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(filterNavItemsByRole(navItems, user?.role), "main")}
+              {renderMenuItems(
+                filterNavItemsByRole(navItems, user?.role),
+                "main"
+              )}
             </div>
           </div>
         </nav>
-    </div>
+      </div>
     </aside>
   );
 };

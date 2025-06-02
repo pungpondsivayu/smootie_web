@@ -19,8 +19,25 @@ export interface IAllMenu {
     categoryId: number
     category : Icategory
 }
-
+ 
 interface Icategory {
     categoryId: number;
     name: string;
+}
+
+export interface IAllMenuRecip {
+  recipeId: number;
+  menuId: number;
+  ingredientId: number;
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+export interface ISaveMenuRecipe {
+  recipeId: number,
+  menuId: number,
+  ingredientId: number,
+  quantity: number,
+  createdBy: string
 }

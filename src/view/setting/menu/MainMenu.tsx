@@ -2,36 +2,46 @@ import { useEffect, useState } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import Button from "../../../components/ui/button/Button";
-import { IDeleteReq ,IDropDown,IPagin } from "../../../@types/global";
+import { IDeleteReq, IDropDown, IPagin } from "../../../@types/global";
 import Pagination from "../../../components/global/Pagination";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useNavigate } from "react-router";
 import AlertMessage from "../../../components/global/SweertAlert";
 import toast from "react-hot-toast";
-import { useDeleteCategoryMutation, useLazyGetDropdownQuery } from "../../../controller/Category.Controllers";
+import {
+  useDeleteCategoryMutation,
+  useLazyGetDropdownQuery,
+} from "../../../controller/Category.Controllers";
 import Showdata from "./Showdata";
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
-import { useDeleteMenuMutation, useLazyGetMenusQuery } from "../../../controller/Menu.Controllers";
+import {
+  useDeleteMenuMutation,
+  useLazyGetMenusQuery,
+} from "../../../controller/Menu.Controllers";
 import SearachSelect from "../../../components/form/SearachSelect";
 import { useDebounce } from "use-debounce";
 import { IAllMenu } from "../../../@types/menu/MenuType";
+import { Roles } from "../../../common/SD";
+import { useAppSelector } from "../../../redux/store/hook";
 
 interface SearchProps {
-  name : string,
-  categoryId: number
+  name: string;
+  categoryId: number;
 }
 
 function MainMenu() {
-  //use hook 
-  const navigate = useNavigate()
+  //use hook
+  const navigate = useNavigate();
   //setting value
+  const { user }: any = useAppSelector((state) => state.auth);
+
   const [data, setData] = useState<IAllMenu[]>([]);
   const [categoryDropdown, setCategoryDropdown] = useState<IDropDown[]>([]);
   const [search, setSearch] = useState<SearchProps>({
-    name : "",
-    categoryId : 0
+    name: "",
+    categoryId: 0,
   });
   const [pagin, setPagin] = useState<IPagin>({
     currentPage: 1,
@@ -42,20 +52,18 @@ function MainMenu() {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [debouncedSearch] = useDebounce(search, 500);
-  
 
   //query
   const [getMenus] = useLazyGetMenusQuery();
   const [getCategoryDropdown] = useLazyGetDropdownQuery();
   const [deleteCategory] = useDeleteMenuMutation();
 
-
   //function
   async function fetchAllMenus(
     pageSize: number,
     currentPage: number,
-    name : string,
-    categoryId:number
+    name: string,
+    categoryId: number
   ) {
     setLoading(true);
     const res = await getMenus({
@@ -82,8 +90,7 @@ function MainMenu() {
     }
   }
 
-
-  async function handleDelete(deleteReq:IDeleteReq){
+  async function handleDelete(deleteReq: IDeleteReq) {
     const result = await AlertMessage({
       type: "question",
       title: `คุณต้องการ ${deleteReq.name} ใช่หรือไม่P?`,
@@ -92,7 +99,7 @@ function MainMenu() {
       cancelButtonText: "ไม่",
     });
     if (result.isConfirmed) {
-      const response : any = await deleteCategory(deleteReq.id)
+      const response: any = await deleteCategory(deleteReq.id);
       if (response && response.data) {
         const res = response.data;
         if (res?.statusCode == 200 && res?.success) {
@@ -117,9 +124,9 @@ function MainMenu() {
   const handlePaginationChange = (page: number, pageSize: number) => {
     fetchAllMenus(pageSize, page, search.name, search.categoryId);
   };
-  
+
   useEffect(() => {
-    Promise.all([fetchCategoriesDropdown(),  fetchAllMenus(10, 1 , "" , 0)]);
+    Promise.all([fetchCategoriesDropdown(), fetchAllMenus(10, 1, "", 0)]);
   }, []);
 
   useEffect(() => {
@@ -130,7 +137,6 @@ function MainMenu() {
       search.categoryId
     );
   }, [debouncedSearch]);
-
 
   return (
     <>
@@ -177,16 +183,19 @@ function MainMenu() {
           </div>
         </ComponentCard>
         <ComponentCard title="Menu">
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => navigate("/setting/menu/form")}
-              startIcon={<FontAwesomeIcon icon={faPlus} />}
-            >
-              Create new
-            </Button>
-          </div>
+          {user?.role == Roles.ADMIN && (
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => navigate("/setting/menu/form")}
+                startIcon={<FontAwesomeIcon icon={faPlus} />}
+              >
+                Create new
+              </Button>
+            </div>
+          )}
+
           <div>
             <Pagination pagin={pagin} onChange={handlePaginationChange} />
           </div>

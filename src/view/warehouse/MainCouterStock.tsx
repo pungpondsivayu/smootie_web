@@ -11,9 +11,10 @@ import { IDropDown, IPagin } from "../../@types/global";
 import { useLazyGetBranchDropdownQuery } from "../../controller/Branch.Controllers";
 import { Roles } from "../../common/SD";
 import { useDebounce } from "use-debounce";
-import { IAllStock } from "../../@types/warehouse/Warehouse";
-import { useLazyGetWarehouseQuery } from "../../controller/Warehouse.Controllers";
+import { IAllCouterStock, IAllStock } from "../../@types/warehouse/Warehouse";
 import Showdata from "./Showdata";
+import Couterdata from "./Couterdata";
+import { useLazyGetCouterQuery } from "../../controller/Warehouse.Controllers";
 
 interface SearchProps {
   BranchId: number;
@@ -31,7 +32,7 @@ function MainWarehouse() {
     totalPages: 0,
   });
   const [branchDropdown, setCBranchDropdown] = useState<IDropDown[]>([]);
-  const [data, setData] = useState<IAllStock[]>([]);
+  const [data, setData] = useState<IAllCouterStock[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [search, setSearch] = useState<SearchProps>({
     BranchId: user && user == Roles.ADMIN ? 0 : user?.branchId,
@@ -41,7 +42,7 @@ function MainWarehouse() {
 
   //use query
   const [getBranchDropdown] = useLazyGetBranchDropdownQuery();
-  const [getWarehouse] = useLazyGetWarehouseQuery();
+  const [getCouter] = useLazyGetCouterQuery();
 
   //function
   async function fetchAllWarehouse(
@@ -50,7 +51,7 @@ function MainWarehouse() {
     branchId: number
   ) {
     setLoading(true);
-    const res = await getWarehouse({
+    const res = await getCouter({
       pageSize,
       currentPage,
       branchId,
@@ -133,7 +134,7 @@ function MainWarehouse() {
         <div>
           <Pagination pagin={pagin} onChange={handlePaginationChange} />
         </div>
-        <Showdata data={data} pagin={pagin} loading={loading} />
+        <Couterdata data={data} pagin={pagin} loading={loading} />
       </ComponentCard>
     </div>
   );

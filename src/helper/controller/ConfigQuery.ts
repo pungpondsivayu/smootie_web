@@ -5,6 +5,6 @@ export const BaseApi = createApi({
     baseQuery : fetchBaseQuery({
         baseUrl : import.meta.env.VITE_BASE_URL
     }),
-    tagTypes: ["Branch" , "Category" , "Menu" , "Ingredient" , "Role" , "Employee"],
+    tagTypes: ["Branch" , "Category" , "Menu" , "Ingredient" , "Role" , "Employee" , "MenuRecipe" , "Warehouse" , "Order"] ,
     endpoints : builder => ({})
 })
